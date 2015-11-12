@@ -1,0 +1,9 @@
+/etc/passwd
+/etc/group
+/proc/version
+/proc/sys/kernel/hostname
+/etc/ssh/ssh_host_rsa_key.pub
+/etc/ssh/ssh_config
+/etc/anacrontab
+/etc/resolv.conf
+/etc/fstab

