@@ -50,29 +50,25 @@ class DtdServerHandler(BaseHTTPRequestHandler):
             self.wfile.write(message)
 
 class DtdServer(HTTPServer, KissKissieBase):
-    def __init__(self, queue, collector_port, collector_host, port=80, host='', template_name='', debug=False):
+    def __init__(self, queue, collector_url, port=80, host='', template_name='', debug=False):
         KissKissieBase.__init__(self, queue, debug)
         HTTPServer.__init__(self, (host, port), DtdServerHandler)
         self._port = port
-        self._collector_port = collector_port
+        self._collector_url = collector_url
         self._host = host
-        self._collector_host = collector_host
         self._template_name = template_name
 
     def run(self):
         self.template_name = self._template_name
         self.queue = self._queue
-        self._collector_host = self._collector_host
-        self._collector_port = self._collector_port
         if self.debug:
             print 'Starting server DTD server %s:%s, use <Ctrl-C> to stop' %(self._host, self._port)
         super(DtdServer, self).serve_forever()
     
     def getTemplate(self, template_name):
         template_tags = {
-                'collector_host':self._collector_host,
-                'collector_port':self._collector_port, 
-                'scan_id':self._queue_message['scan_id'], 
+                'collector_url': self._collector_url,
                 }
-        return KissKissieBase.getTemplate(self, template_name, template_tags)
+        t = KissKissieBase.getTemplate(self, template_name, template_tags)
+        return t.replace('$scan_id', self._queue_message['scan_id'])
         
